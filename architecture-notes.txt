@@ -1,0 +1,49 @@
+Content Broadcasting System — Architecture Notes
+
+Auth/RBAC
+- JWT Bearer token (1h expiry) issued via POST /auth/login
+- Middleware:
+  - requireAuth verifies JWT and sets req.user {id, role, email}
+  - requireRole('teacher'|'principal') enforces RBAC
+
+Upload handling
+- Local disk storage via multer into UPLOAD_DIR (default: uploads/)
+- Static serving via GET /uploads/<filename>
+- Validation:
+  - allowlist mime: image/jpeg, image/png, image/gif
+  - max size: MAX_UPLOAD_MB
+
+Approval workflow
+- Teacher uploads create Content with status=pending
+- Principal approves -> status=approved, sets approvedById + approvedAt
+- Principal rejects -> status=rejected, requires rejection_reason
+
+Scheduling + live rotation
+- Content is eligible for live selection only if:
+  - status=approved
+  - startTime and endTime are both set
+  - startTime <= now < endTime
+  - content is included in teacher+subject rotation list (content_schedule)
+- Rotation selection:
+  - For teacher+subject: take scheduled items ordered by rotation_order
+  - Filter to eligible items
+  - Anchor epoch = min(startTime) among eligible items
+  - elapsedMinutes = floor((now - epoch)/60000)
+  - cycleMinutes = sum(effective durations)
+  - active index chosen by walking elapsedMinutes % cycleMinutes
+  - effective duration = schedule.durationMinutes ?? content.rotationDurationMinutes ?? DEFAULT_ROTATION_MINUTES
+- /content/live/:teacherId:
+  - Optional subject filter computes only that subject
+  - Without subject, compute per subject and return first active subject in stable alphabetical order
+
+DB decisions
+- PostgreSQL + Prisma
+- Tables:
+  - users
+  - content
+  - content_schedule (rotation list keyed by teacher_id + subject)
+
+Docker
+- Dev compose: Postgres + API with bind-mount + pnpm dev
+- Prod compose: Postgres + built API image, uploads volume
+

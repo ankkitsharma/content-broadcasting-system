@@ -1,0 +1,330 @@
+openapi: 3.0.3
+info:
+  title: Content Broadcasting System API
+  version: 1.0.0
+servers:
+  - url: http://localhost:3000
+tags:
+  - name: Health
+  - name: Auth
+  - name: Teacher
+  - name: Principal
+  - name: Public
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+      required: [error]
+    LoginRequest:
+      type: object
+      properties:
+        email: { type: string, format: email }
+        password: { type: string }
+      required: [email, password]
+    LoginResponse:
+      type: object
+      properties:
+        token: { type: string }
+        user:
+          type: object
+          properties:
+            id: { type: string }
+            name: { type: string }
+            email: { type: string, format: email }
+            role: { type: string, enum: [principal, teacher] }
+          required: [id, name, email, role]
+      required: [token, user]
+    LiveContent:
+      type: object
+      properties:
+        id: { type: string }
+        title: { type: string }
+        description: { type: string, nullable: true }
+        subject: { type: string }
+        fileUrl: { type: string }
+        startTime: { type: string, format: date-time }
+        endTime: { type: string, format: date-time }
+        rotationDurationMinutes: { type: integer }
+      required: [id, title, subject, fileUrl, startTime, endTime, rotationDurationMinutes]
+    NoContent:
+      type: object
+      properties:
+        message: { type: string }
+      required: [message]
+paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: Health check
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                required: [ok]
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Login and receive JWT
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /content/live/{teacherId}:
+    get:
+      tags: [Public]
+      summary: Get currently active approved content for a teacher
+      parameters:
+        - in: path
+          name: teacherId
+          required: true
+          schema: { type: string }
+        - in: query
+          name: subject
+          required: false
+          schema: { type: string }
+      responses:
+        "200":
+          description: Active content or empty message
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/LiveContent"
+                  - $ref: "#/components/schemas/NoContent"
+
+  /content:
+    post:
+      tags: [Teacher]
+      summary: Upload new content (teacher only)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                title: { type: string }
+                subject: { type: string }
+                description: { type: string }
+                start_time: { type: string, format: date-time }
+                end_time: { type: string, format: date-time }
+                rotation_duration_minutes: { type: integer }
+                file:
+                  type: string
+                  format: binary
+              required: [title, subject, file]
+      responses:
+        "201":
+          description: Created
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Unauthorized
+
+  /content/mine:
+    get:
+      tags: [Teacher]
+      summary: List own uploads (teacher only)
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Unauthorized
+
+  /content/{id}/schedule:
+    put:
+      tags: [Teacher]
+      summary: Update content schedule window (teacher only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                start_time: { type: string, format: date-time }
+                end_time: { type: string, format: date-time }
+                rotation_duration_minutes: { type: integer }
+              required: [start_time, end_time]
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Unauthorized
+        "404":
+          description: Not found
+
+  /content/{id}/rotation:
+    put:
+      tags: [Teacher]
+      summary: Upsert a rotation slot (teacher only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                subject: { type: string }
+                rotation_order: { type: integer, minimum: 0 }
+                duration_minutes: { type: integer, minimum: 1 }
+              required: [subject, rotation_order]
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Unauthorized
+        "404":
+          description: Not found
+
+  /admin/content:
+    get:
+      tags: [Principal]
+      summary: List all content (principal only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: status
+          schema: { type: string, enum: [pending, approved, rejected] }
+        - in: query
+          name: subject
+          schema: { type: string }
+        - in: query
+          name: teacher_id
+          schema: { type: string }
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+
+  /admin/content/pending:
+    get:
+      tags: [Principal]
+      summary: List pending content (principal only)
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+
+  /admin/content/{id}/approve:
+    post:
+      tags: [Principal]
+      summary: Approve content (principal only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+        "404":
+          description: Not found
+        "409":
+          description: Conflict
+
+  /admin/content/{id}/reject:
+    post:
+      tags: [Principal]
+      summary: Reject content with a reason (principal only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                rejection_reason: { type: string }
+              required: [rejection_reason]
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+        "404":
+          description: Not found
+        "409":
+          description: Conflict
+

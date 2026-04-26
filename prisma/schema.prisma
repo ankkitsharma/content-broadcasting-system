@@ -1,0 +1,79 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  principal
+  teacher
+}
+
+enum ContentStatus {
+  pending
+  approved
+  rejected
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  role         UserRole
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  uploadedContent Content[]        @relation("ContentUploadedBy")
+  approvals       Content[]        @relation("ContentApprovedBy")
+  schedules       ContentSchedule[]
+
+  @@map("users")
+}
+
+model Content {
+  id                      String        @id @default(cuid())
+  title                   String
+  description             String?
+  subject                 String
+  filePath                String        @map("file_path")
+  fileType                String        @map("file_type")
+  fileSize                Int           @map("file_size")
+  uploadedById            String        @map("uploaded_by")
+  status                  ContentStatus @default(pending)
+  rejectionReason         String?       @map("rejection_reason")
+  approvedById            String?       @map("approved_by")
+  approvedAt              DateTime?     @map("approved_at")
+  startTime               DateTime?     @map("start_time")
+  endTime                 DateTime?     @map("end_time")
+  rotationDurationMinutes Int?          @map("rotation_duration_minutes")
+  createdAt               DateTime      @default(now()) @map("created_at")
+
+  uploadedBy User   @relation("ContentUploadedBy", fields: [uploadedById], references: [id])
+  approvedBy User?  @relation("ContentApprovedBy", fields: [approvedById], references: [id])
+  schedules  ContentSchedule[]
+
+  @@index([uploadedById, status])
+  @@index([subject, status])
+  @@index([startTime, endTime])
+  @@map("content")
+}
+
+model ContentSchedule {
+  id             String   @id @default(cuid())
+  teacherId      String   @map("teacher_id")
+  subject        String
+  contentId      String   @map("content_id")
+  rotationOrder  Int      @map("rotation_order")
+  durationMinutes Int?    @map("duration_minutes")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  teacher User    @relation(fields: [teacherId], references: [id])
+  content Content @relation(fields: [contentId], references: [id])
+
+  @@unique([teacherId, subject, rotationOrder])
+  @@index([teacherId, subject, rotationOrder])
+  @@map("content_schedule")
+}
+

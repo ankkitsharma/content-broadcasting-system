@@ -1,0 +1,39 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: content_broadcasting
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata_dev:/var/lib/postgresql/data
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: deps
+    working_dir: /app
+    command: ["pnpm", "dev"]
+    environment:
+      PORT: 3000
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/content_broadcasting?schema=public
+      JWT_SECRET: change_me_change_me_change_me
+      UPLOAD_DIR: uploads
+      MAX_UPLOAD_MB: 10
+      DEFAULT_ROTATION_MINUTES: 5
+    ports:
+      - "3000:3000"
+    depends_on:
+      - db
+    volumes:
+      - ./:/app
+      - /app/node_modules
+      - uploads_dev:/app/uploads
+
+volumes:
+  pgdata_dev:
+  uploads_dev:
+
