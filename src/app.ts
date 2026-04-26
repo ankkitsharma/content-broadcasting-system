@@ -21,6 +21,8 @@ export function createApp() {
   const openApiPath = path.resolve(process.cwd(), "openapi.yaml");
   if (fs.existsSync(openApiPath)) {
     const spec = YAML.parse(fs.readFileSync(openApiPath, "utf8"));
+    // Ensure the "Try it out" base URL matches the deployment.
+    spec.servers = [{ url: env.PUBLIC_BASE_URL }];
     app.use("/docs", swaggerUi.serve, swaggerUi.setup(spec));
   }
 

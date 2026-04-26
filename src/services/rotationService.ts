@@ -120,7 +120,10 @@ export async function getLiveContentForTeacher(
       title: chosen.content.title,
       description: chosen.content.description,
       subject: chosen.content.subject,
-      fileUrl: `/uploads/${chosen.content.filePath}`,
+      fileUrl: new URL(
+        `/uploads/${chosen.content.filePath}`,
+        env.PUBLIC_BASE_URL,
+      ).toString(),
       startTime: chosen.content.startTime!,
       endTime: chosen.content.endTime!,
       rotationDurationMinutes: effectiveMinutes,
