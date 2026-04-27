@@ -3,7 +3,7 @@ info:
   title: Content Broadcasting System API
   version: 1.0.0
 servers:
-  - url: http://localhost:3000
+  - url: https://cbs.ankitsh.cc
 tags:
   - name: Health
   - name: Auth
@@ -53,7 +53,16 @@ components:
         startTime: { type: string, format: date-time }
         endTime: { type: string, format: date-time }
         rotationDurationMinutes: { type: integer }
-      required: [id, title, subject, fileUrl, startTime, endTime, rotationDurationMinutes]
+      required:
+        [
+          id,
+          title,
+          subject,
+          fileUrl,
+          startTime,
+          endTime,
+          rotationDurationMinutes,
+        ]
     NoContent:
       type: object
       properties:
@@ -327,4 +336,3 @@ paths:
           description: Not found
         "409":
           description: Conflict
-
