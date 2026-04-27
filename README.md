@@ -166,3 +166,7 @@ If you see an error like “The table `public.users` does not exist”, run the 
 ## Demo video
 
 - https://drive.google.com/file/d/1he5ddMNcRiLXxkHBuBVLN5sim-k8e-V9/view?usp=sharing
+
+## Screenshots
+<img width="1922" height="1028" alt="Screenshot 2026-04-27 at 11 43 29 PM" src="https://github.com/user-attachments/assets/dccc403e-8216-465f-9eca-2026beb80b3a" />
+
