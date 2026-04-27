@@ -35,6 +35,21 @@ const BaseEnvSchema = z.object({
     .positive()
     .optional()
     .default(60),
+
+  STORAGE_PROVIDER: z.enum(["local", "s3"]).optional().default("local"),
+
+  // S3-compatible config (Cloudflare R2, AWS S3, etc.)
+  // Required when STORAGE_PROVIDER="s3".
+  S3_ENDPOINT: z.string().min(1).optional(),
+  S3_REGION: z.string().min(1).optional().default("auto"),
+  S3_BUCKET: z.string().min(1).optional(),
+  S3_ACCESS_KEY_ID: z.string().min(1).optional(),
+  S3_SECRET_ACCESS_KEY: z.string().min(1).optional(),
+  // Base URL used to form public object URLs:
+  // `${S3_PUBLIC_BASE_URL}/${key}`
+  S3_PUBLIC_BASE_URL: z.string().url().optional(),
+  // R2 works best with path-style access enabled.
+  S3_FORCE_PATH_STYLE: z.coerce.boolean().optional().default(true),
 });
 
 const base = BaseEnvSchema.parse(process.env);

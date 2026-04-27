@@ -10,6 +10,7 @@ import { env } from "../utils/env";
 import { HttpError } from "../utils/httpErrors";
 import { getLiveContentForTeacher } from "../services/rotationService";
 import { getRedisClient } from "../utils/redis";
+import { putPublicObject } from "../utils/s3";
 
 const SubjectSchema = z.string().min(1);
 
@@ -142,6 +143,39 @@ contentRoutes.post(
 
         return content;
       });
+
+      if (env.STORAGE_PROVIDER === "s3") {
+        if (!req.file.path) {
+          throw new HttpError(
+            500,
+            "Upload storage misconfigured (missing file path)",
+          );
+        }
+
+        const fs = await import("node:fs/promises");
+        const objectKey = `uploads/${req.user!.id}/${created.id}/${req.file.filename}`;
+        const body = await fs.readFile(req.file.path);
+
+        try {
+          await putPublicObject({
+            key: objectKey,
+            body,
+            contentType: req.file.mimetype,
+          });
+        } catch (e) {
+          await prisma.contentSchedule.deleteMany({
+            where: { contentId: created.id },
+          });
+          await prisma.content.delete({ where: { id: created.id } });
+          throw e;
+        }
+
+        const updated = await prisma.content.update({
+          where: { id: created.id },
+          data: { filePath: objectKey },
+        });
+        return res.status(201).json(updated);
+      }
 
       res.status(201).json(created);
     } catch (e) {

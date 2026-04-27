@@ -31,6 +31,31 @@ Backend-only Content Broadcasting System (Node.js + Express + PostgreSQL + Prism
   - Health: `GET http://localhost:3000/health`
   - Swagger UI: `GET http://localhost:3000/docs/`
 
+## S3 Uploads with Cloudflare R2 (public bucket)
+
+This project supports S3-style uploads via **Cloudflare R2** (S3-compatible).
+
+### Setup in Cloudflare
+
+- Create an **R2 bucket**
+- Enable a **public access route** (e.g. `r2.dev` or a custom domain) so objects can be fetched publicly
+- Create an **API token / access key** for S3-compatible access (Access Key ID + Secret)
+
+### Enable R2 uploads in the API
+
+Set `STORAGE_PROVIDER="s3"` and configure these env vars:
+
+- `S3_ENDPOINT`: `https://<accountid>.r2.cloudflarestorage.com`
+- `S3_REGION`: `auto`
+- `S3_BUCKET`: your bucket name
+- `S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY`: from the R2 API token
+- `S3_PUBLIC_BASE_URL`: the base URL for your public bucket route
+  - Example: `https://pub-<hash>.r2.dev/<bucket>`
+
+When enabled:
+- Uploads go to R2 and `content.filePath` stores the **object key**
+- The live endpoint returns `fileUrl = ${S3_PUBLIC_BASE_URL}/${key}`
+
 If you add new dependencies and the container throws “Cannot find module …”, reset volumes (dev):
 
 - `docker compose -f docker-compose.dev.yml down -v`

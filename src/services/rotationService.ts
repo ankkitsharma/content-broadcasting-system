@@ -1,5 +1,6 @@
 import { prisma } from "../db/prisma";
 import { env } from "../utils/env";
+import { getPublicObjectUrl } from "../utils/s3";
 
 type LiveContent = {
   id: string;
@@ -115,15 +116,20 @@ export async function getLiveContentForTeacher(
     const chosen = picked.row;
     const effectiveMinutes = picked.effectiveMinutes;
 
+    const fileUrl =
+      env.STORAGE_PROVIDER === "s3"
+        ? getPublicObjectUrl(chosen.content.filePath)
+        : new URL(
+            `/uploads/${chosen.content.filePath}`,
+            env.PUBLIC_BASE_URL,
+          ).toString();
+
     return {
       id: chosen.content.id,
       title: chosen.content.title,
       description: chosen.content.description,
       subject: chosen.content.subject,
-      fileUrl: new URL(
-        `/uploads/${chosen.content.filePath}`,
-        env.PUBLIC_BASE_URL,
-      ).toString(),
+      fileUrl,
       startTime: chosen.content.startTime!,
       endTime: chosen.content.endTime!,
       rotationDurationMinutes: effectiveMinutes,
