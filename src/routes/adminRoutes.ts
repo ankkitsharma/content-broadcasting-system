@@ -15,17 +15,33 @@ adminRoutes.get("/content", async (req, res, next) => {
     const status = req.query.status ? z.enum(["pending", "approved", "rejected"]).parse(req.query.status) : undefined;
     const subject = req.query.subject ? z.string().min(1).parse(req.query.subject) : undefined;
     const teacherId = req.query.teacher_id ? z.string().min(1).parse(req.query.teacher_id) : undefined;
+    const page = req.query.page ? z.coerce.number().int().positive().parse(req.query.page) : 1;
+    const pageSizeRaw = req.query.page_size ? z.coerce.number().int().positive().parse(req.query.page_size) : 20;
+    const pageSize = Math.min(100, pageSizeRaw);
 
-    const items = await prisma.content.findMany({
-      where: {
-        ...(status ? { status } : {}),
-        ...(subject ? { subject } : {}),
-        ...(teacherId ? { uploadedById: teacherId } : {})
-      },
-      orderBy: { createdAt: "desc" }
+    const where = {
+      ...(status ? { status } : {}),
+      ...(subject ? { subject } : {}),
+      ...(teacherId ? { uploadedById: teacherId } : {}),
+    } as const;
+
+    const [total, items] = await Promise.all([
+      prisma.content.count({ where }),
+      prisma.content.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+    ]);
+
+    res.json({
+      page,
+      pageSize,
+      total,
+      totalPages: Math.ceil(total / pageSize),
+      items,
     });
-
-    res.json(items);
   } catch (e) {
     next(e);
   }
@@ -86,6 +102,94 @@ adminRoutes.post("/content/:id/reject", async (req, res, next) => {
       }
     });
     res.json(updated);
+  } catch (e) {
+    next(e);
+  }
+});
+
+adminRoutes.get("/analytics/subjects", async (req, res, next) => {
+  try {
+    const from = req.query.from ? z.string().datetime().parse(req.query.from) : undefined;
+    const to = req.query.to ? z.string().datetime().parse(req.query.to) : undefined;
+    const teacherId = req.query.teacher_id ? z.string().min(1).parse(req.query.teacher_id) : undefined;
+
+    const where = {
+      ...(teacherId ? { teacherId } : {}),
+      ...(from || to
+        ? {
+            viewedAt: {
+              ...(from ? { gte: new Date(from) } : {}),
+              ...(to ? { lt: new Date(to) } : {}),
+            },
+          }
+        : {}),
+    } as const;
+
+    const rows = await prisma.contentViewEvent.groupBy({
+      by: ["subject"],
+      where,
+      _count: { subject: true },
+      orderBy: { _count: { subject: "desc" } },
+    });
+
+    const mostActiveSubject = rows.length > 0 ? rows[0].subject : null;
+    res.json({
+      mostActiveSubject,
+      subjects: rows.map((r) => ({
+        subject: r.subject,
+        views: r._count.subject,
+      })),
+    });
+  } catch (e) {
+    next(e);
+  }
+});
+
+adminRoutes.get("/analytics/content", async (req, res, next) => {
+  try {
+    const from = req.query.from ? z.string().datetime().parse(req.query.from) : undefined;
+    const to = req.query.to ? z.string().datetime().parse(req.query.to) : undefined;
+    const teacherId = req.query.teacher_id ? z.string().min(1).parse(req.query.teacher_id) : undefined;
+    const subject = req.query.subject ? z.string().min(1).parse(req.query.subject) : undefined;
+    const page = req.query.page ? z.coerce.number().int().positive().parse(req.query.page) : 1;
+    const pageSizeRaw = req.query.page_size ? z.coerce.number().int().positive().parse(req.query.page_size) : 20;
+    const pageSize = Math.min(100, pageSizeRaw);
+
+    const where = {
+      ...(teacherId ? { teacherId } : {}),
+      ...(subject ? { subject } : {}),
+      ...(from || to
+        ? {
+            viewedAt: {
+              ...(from ? { gte: new Date(from) } : {}),
+              ...(to ? { lt: new Date(to) } : {}),
+            },
+          }
+        : {}),
+    } as const;
+
+    const [total, rows] = await Promise.all([
+      prisma.contentViewEvent.count({ where }),
+      prisma.contentViewEvent.findMany({
+        where,
+        orderBy: { viewedAt: "desc" },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+        include: {
+          content: {
+            select: { id: true, title: true, subject: true, uploadedById: true },
+          },
+        },
+      }),
+    ]);
+
+    res.json({
+      page,
+      pageSize,
+      total,
+      totalPages: Math.ceil(total / pageSize),
+      items: rows,
+    });
   } catch (e) {
     next(e);
   }

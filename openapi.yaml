@@ -260,6 +260,12 @@ paths:
         - in: query
           name: teacher_id
           schema: { type: string }
+        - in: query
+          name: page
+          schema: { type: integer, minimum: 1, default: 1 }
+        - in: query
+          name: page_size
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
       responses:
         "200":
           description: OK
@@ -336,3 +342,67 @@ paths:
           description: Not found
         "409":
           description: Conflict
+
+  /admin/analytics/subjects:
+    get:
+      tags: [Principal]
+      summary: Subject-wise analytics (most active subject + counts)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: teacher_id
+          required: false
+          schema: { type: string }
+        - in: query
+          name: from
+          required: false
+          schema: { type: string, format: date-time }
+        - in: query
+          name: to
+          required: false
+          schema: { type: string, format: date-time }
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+
+  /admin/analytics/content:
+    get:
+      tags: [Principal]
+      summary: Content usage tracking (view events)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: teacher_id
+          required: false
+          schema: { type: string }
+        - in: query
+          name: subject
+          required: false
+          schema: { type: string }
+        - in: query
+          name: from
+          required: false
+          schema: { type: string, format: date-time }
+        - in: query
+          name: to
+          required: false
+          schema: { type: string, format: date-time }
+        - in: query
+          name: page
+          schema: { type: integer, minimum: 1, default: 1 }
+        - in: query
+          name: page_size
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden

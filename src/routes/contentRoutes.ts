@@ -52,7 +52,20 @@ contentRoutes.get("/live/:teacherId", publicRateLimit, async (req, res, next) =>
 
         if (cached) {
           console.log("Returning Cached result");
-          return res.json(JSON.parse(cached));
+          const parsed = JSON.parse(cached);
+          if (parsed && typeof parsed === "object" && "id" in parsed) {
+            const live = parsed as { id: string; subject: string };
+            void prisma.contentViewEvent
+              .create({
+                data: {
+                  contentId: live.id,
+                  teacherId,
+                  subject: live.subject,
+                },
+              })
+              .catch(() => {});
+          }
+          return res.json(parsed);
         }
       } catch {
         // Cache failures should never break the endpoint.
@@ -70,6 +83,18 @@ contentRoutes.get("/live/:teacherId", publicRateLimit, async (req, res, next) =>
       } catch {
         // Cache failures should never break the endpoint.
       }
+    }
+
+    if (live) {
+      void prisma.contentViewEvent
+        .create({
+          data: {
+            contentId: live.id,
+            teacherId,
+            subject: live.subject,
+          },
+        })
+        .catch(() => {});
     }
 
     res.json(payload);
