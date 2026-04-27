@@ -26,7 +26,16 @@ export function createApp() {
     const spec = YAML.parse(fs.readFileSync(openApiPath, "utf8"));
     // Ensure the "Try it out" base URL matches the deployment.
     spec.servers = [{ url: env.PUBLIC_BASE_URL }];
-    app.use("/docs", swaggerUi.serve, swaggerUi.setup(spec));
+    // Docs content is environment-specific (PUBLIC_BASE_URL), so avoid intermediary caching.
+    app.use(
+      "/docs",
+      (_req, res, next) => {
+        res.setHeader("Cache-Control", "no-store");
+        next();
+      },
+      swaggerUi.serve,
+      swaggerUi.setup(spec),
+    );
   }
 
   app.use(
