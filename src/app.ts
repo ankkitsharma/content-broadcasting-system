@@ -13,6 +13,9 @@ import { env } from "./utils/env";
 export function createApp() {
   const app = express();
 
+  // Add this BEFORE your routes
+  app.set("trust proxy", 1);
+
   app.use(cors());
   app.use(express.json({ limit: "2mb" }));
 
@@ -26,7 +29,10 @@ export function createApp() {
     app.use("/docs", swaggerUi.serve, swaggerUi.setup(spec));
   }
 
-  app.use("/uploads", express.static(path.resolve(process.cwd(), env.UPLOAD_DIR)));
+  app.use(
+    "/uploads",
+    express.static(path.resolve(process.cwd(), env.UPLOAD_DIR)),
+  );
 
   app.use(routes);
 
@@ -35,4 +41,3 @@ export function createApp() {
 
   return app;
 }
-
