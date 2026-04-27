@@ -10,8 +10,8 @@ Backend-only Content Broadcasting System (Node.js + Express + PostgreSQL + Prism
   - `pnpm install`
 - Start Postgres:
   - `docker compose -f docker-compose.dev.yml up -d db`
-- Run migrations + seed (against `DATABASE_URL` from `.env`):
-  - `pnpm exec prisma migrate dev --name init`
+- Push schema + seed (against `DATABASE_URL` from `.env`):
+  - `pnpm exec prisma db push`
   - `pnpm db:seed`
 - Start API:
   - `pnpm dev`
@@ -24,8 +24,8 @@ Backend-only Content Broadcasting System (Node.js + Express + PostgreSQL + Prism
 
 - Start API + DB:
   - `docker compose -f docker-compose.dev.yml up --build`
-- Run migrations + seed (inside the API container):
-  - `docker compose -f docker-compose.dev.yml exec api pnpm exec prisma migrate dev --name init`
+- Push schema + seed (inside the API container):
+  - `docker compose -f docker-compose.dev.yml exec api pnpm exec prisma db push`
   - `docker compose -f docker-compose.dev.yml exec api pnpm db:seed`
 - URLs:
   - Health: `GET http://localhost:3000/health`
@@ -43,16 +43,16 @@ If you add new dependencies and the container throws “Cannot find module …�
   - Edit `.env.production` for your VPS values
 - Start API + DB:
   - `docker compose -f docker-compose.prod.yml up -d --build`
-- Run migrations (production-safe) + seed:
-  - `docker compose -f docker-compose.prod.yml exec api pnpm exec prisma migrate deploy`
-  - `docker compose -f docker-compose.prod.yml exec api pnpm db:seed`
+- Push schema + seed:
+  - `docker compose -f docker-compose.prod.yml exec api pnpm exec prisma db push`
+  - `docker compose -f docker-compose.prod.yml exec api node dist/prisma/seed.js`
 - URLs (example, depends on your VPS):
   - Health: `GET http://<your-host>:3000/health`
   - Swagger UI: `GET http://<your-host>:3000/docs/`
 
 ## Common error: missing tables
 
-If you see an error like “The table `public.users` does not exist”, run the migration step for your chosen flow above.
+If you see an error like “The table `public.users` does not exist”, run the `prisma db push` step for your chosen flow above.
 
 ## Seeded users
 
