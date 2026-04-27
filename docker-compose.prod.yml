@@ -18,7 +18,7 @@ services:
     command: ["node", "dist/src/server.js"]
     environment:
       PORT: 3000
-      DATABASE_URL: ${DATABASE_URL}
+      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:postgres@db:5432/content_broadcasting?schema=public}
       JWT_SECRET: ${JWT_SECRET}
       UPLOAD_DIR: ${UPLOAD_DIR:-uploads}
       MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-10}

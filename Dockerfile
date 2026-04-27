@@ -19,6 +19,7 @@ RUN corepack enable
 COPY package.json pnpm-lock.yaml ./
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
+COPY src ./src
 COPY prisma ./prisma
 COPY prisma.config.ts ./prisma.config.ts
 RUN mkdir -p /app/uploads
