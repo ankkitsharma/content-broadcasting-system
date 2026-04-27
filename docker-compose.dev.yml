@@ -28,6 +28,8 @@ services:
       JWT_SECRET: change_me_change_me_change_me
       REDIS_URL: redis://redis:6379
       LIVE_CONTENT_CACHE_TTL_SECONDS: 15
+      PUBLIC_RATE_LIMIT_WINDOW_MS: 60000
+      PUBLIC_RATE_LIMIT_MAX: 60
       UPLOAD_DIR: uploads
       MAX_UPLOAD_MB: 10
       DEFAULT_ROTATION_MINUTES: 5
