@@ -1,5 +1,5 @@
 import cors from "cors";
-import express from "express";
+import express, { type NextFunction, type Request, type Response } from "express";
 import fs from "node:fs";
 import path from "node:path";
 import YAML from "yaml";
@@ -29,7 +29,7 @@ export function createApp() {
     // Docs content is environment-specific (PUBLIC_BASE_URL), so avoid intermediary caching.
     app.use(
       "/docs",
-      (_req, res, next) => {
+      (_req: Request, res: Response, next: NextFunction) => {
         res.setHeader("Cache-Control", "no-store");
         next();
       },
