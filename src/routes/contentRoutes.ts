@@ -40,9 +40,17 @@ export const contentRoutes = Router();
 contentRoutes.get("/live/:teacherId", publicRateLimit, async (req, res, next) => {
   try {
     const teacherId = z.string().min(1).parse(req.params.teacherId);
-    const subject = req.query.subject
-      ? z.string().min(1).parse(req.query.subject)
-      : undefined;
+    // Edge case: invalid subject filter should return empty response (not error).
+    // This includes empty string and array values like ?subject=a&subject=b.
+    const hasSubject = Object.prototype.hasOwnProperty.call(req.query, "subject");
+    const subjectResult = hasSubject
+      ? z.string().min(1).safeParse(req.query.subject)
+      : { success: true as const, data: undefined as string | undefined };
+    if (!subjectResult.success) {
+      // Per plan.md: invalid subject filter should return empty response (not error).
+      return res.json({});
+    }
+    const subject = subjectResult.data;
 
     const redis = await getRedisClient();
     const cacheKey = `live:${teacherId}:${subject ?? "_"}`;
@@ -55,15 +63,18 @@ contentRoutes.get("/live/:teacherId", publicRateLimit, async (req, res, next) =>
           const parsed = JSON.parse(cached);
           if (parsed && typeof parsed === "object" && "id" in parsed) {
             const live = parsed as { id: string; subject: string };
-            void prisma.contentViewEvent
-              .create({
-                data: {
-                  contentId: live.id,
-                  teacherId,
-                  subject: live.subject,
-                },
-              })
-              .catch(() => {});
+            const viewEventDelegate = (prisma as any).contentViewEvent;
+            if (viewEventDelegate?.create) {
+              void viewEventDelegate
+                .create({
+                  data: {
+                    contentId: live.id,
+                    teacherId,
+                    subject: live.subject,
+                  },
+                })
+                .catch(() => {});
+            }
           }
           return res.json(parsed);
         }
@@ -73,7 +84,8 @@ contentRoutes.get("/live/:teacherId", publicRateLimit, async (req, res, next) =>
     }
 
     const live = await getLiveContentForTeacher(teacherId, subject);
-    const payload = live ?? { message: "No content available" };
+    // Per plan.md: all "no live content" cases return empty response (not error).
+    const payload = live ?? {};
 
     if (redis) {
       try {
@@ -86,15 +98,18 @@ contentRoutes.get("/live/:teacherId", publicRateLimit, async (req, res, next) =>
     }
 
     if (live) {
-      void prisma.contentViewEvent
-        .create({
-          data: {
-            contentId: live.id,
-            teacherId,
-            subject: live.subject,
-          },
-        })
-        .catch(() => {});
+      const viewEventDelegate = (prisma as any).contentViewEvent;
+      if (viewEventDelegate?.create) {
+        void viewEventDelegate
+          .create({
+            data: {
+              contentId: live.id,
+              teacherId,
+              subject: live.subject,
+            },
+          })
+          .catch(() => {});
+      }
     }
 
     res.json(payload);

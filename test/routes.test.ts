@@ -87,14 +87,27 @@ describe("routes (mocked prisma)", () => {
     expect(res.status).toBe(403);
   });
 
-  it("GET /content/live/:teacherId returns empty message when no schedules", async () => {
+  it("GET /content/live/:teacherId returns empty response when no schedules", async () => {
     const app = createApp();
     (prisma.contentSchedule.findMany as unknown as ReturnType<typeof vi.fn>).mockResolvedValue([]);
     (prisma.content.findFirst as unknown as ReturnType<typeof vi.fn>).mockResolvedValue(null);
 
     const res = await request(app).get("/content/live/t1");
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ message: "No content available" });
+    expect(res.body).toEqual({});
+  });
+
+  it("GET /content/live/:teacherId returns empty response for invalid subject filter", async () => {
+    const app = createApp();
+
+    // Should not error even though subject is invalid.
+    const res1 = await request(app).get("/content/live/t1?subject=");
+    expect(res1.status).toBe(200);
+    expect(res1.body).toEqual({});
+
+    const res2 = await request(app).get("/content/live/t1?subject=a&subject=b");
+    expect(res2.status).toBe(200);
+    expect(res2.body).toEqual({});
   });
 });
 

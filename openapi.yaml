@@ -63,11 +63,10 @@ components:
           endTime,
           rotationDurationMinutes,
         ]
-    NoContent:
+    EmptyResponse:
       type: object
-      properties:
-        message: { type: string }
-      required: [message]
+      description: Empty JSON object when no live content is available.
+      additionalProperties: false
 paths:
   /health:
     get:
@@ -123,13 +122,13 @@ paths:
           schema: { type: string }
       responses:
         "200":
-          description: Active content or empty message
+          description: Active content or empty response
           content:
             application/json:
               schema:
                 oneOf:
                   - $ref: "#/components/schemas/LiveContent"
-                  - $ref: "#/components/schemas/NoContent"
+                  - $ref: "#/components/schemas/EmptyResponse"
 
   /content:
     post:
