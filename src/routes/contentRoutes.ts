@@ -2,6 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 
 import { prisma } from "../db/prisma";
+import { publicRateLimit } from "../middlewares/publicRateLimit";
 import { requireAuth } from "../middlewares/requireAuth";
 import { requireRole } from "../middlewares/requireRole";
 import { upload } from "../middlewares/upload";
@@ -35,7 +36,7 @@ const RotationSchema = z.object({
 
 export const contentRoutes = Router();
 
-contentRoutes.get("/live/:teacherId", async (req, res, next) => {
+contentRoutes.get("/live/:teacherId", publicRateLimit, async (req, res, next) => {
   try {
     const teacherId = z.string().min(1).parse(req.params.teacherId);
     const subject = req.query.subject

@@ -22,6 +22,19 @@ const BaseEnvSchema = z.object({
     .positive()
     .optional()
     .default(15),
+
+  PUBLIC_RATE_LIMIT_WINDOW_MS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .optional()
+    .default(60_000),
+  PUBLIC_RATE_LIMIT_MAX: z.coerce
+    .number()
+    .int()
+    .positive()
+    .optional()
+    .default(60),
 });
 
 const base = BaseEnvSchema.parse(process.env);
