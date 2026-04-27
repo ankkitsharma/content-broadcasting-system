@@ -23,5 +23,5 @@ COPY prisma ./prisma
 COPY prisma.config.ts ./prisma.config.ts
 RUN mkdir -p /app/uploads
 EXPOSE 3000
-CMD ["node", "dist/server.js"]
+CMD ["node", "dist/src/server.js"]
 

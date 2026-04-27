@@ -15,6 +15,7 @@ services:
       dockerfile: Dockerfile
       target: runner
     restart: unless-stopped
+    command: ["node", "dist/src/server.js"]
     environment:
       PORT: 3000
       DATABASE_URL: ${DATABASE_URL}
