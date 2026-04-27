@@ -12,7 +12,16 @@ const BaseEnvSchema = z.object({
   PUBLIC_BASE_URL: z.string().url().optional(),
   UPLOAD_DIR: z.string().optional().default("uploads"),
   MAX_UPLOAD_MB: z.coerce.number().int().positive().optional().default(10),
-  DEFAULT_ROTATION_MINUTES: z.coerce.number().int().positive().optional().default(5)
+  DEFAULT_ROTATION_MINUTES: z.coerce.number().int().positive().optional().default(5),
+
+  // Optional: enables Redis caching when provided.
+  REDIS_URL: z.string().min(1).optional(),
+  LIVE_CONTENT_CACHE_TTL_SECONDS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .optional()
+    .default(15),
 });
 
 const base = BaseEnvSchema.parse(process.env);

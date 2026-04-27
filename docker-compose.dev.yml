@@ -10,6 +10,11 @@ services:
     volumes:
       - pgdata_dev:/var/lib/postgresql/data
 
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
   api:
     build:
       context: .
@@ -21,6 +26,8 @@ services:
       PORT: 3000
       DATABASE_URL: postgresql://postgres:postgres@db:5432/content_broadcasting?schema=public
       JWT_SECRET: change_me_change_me_change_me
+      REDIS_URL: redis://redis:6379
+      LIVE_CONTENT_CACHE_TTL_SECONDS: 15
       UPLOAD_DIR: uploads
       MAX_UPLOAD_MB: 10
       DEFAULT_ROTATION_MINUTES: 5
@@ -28,6 +35,7 @@ services:
       - "3000:3000"
     depends_on:
       - db
+      - redis
     volumes:
       - ./:/app
       - /app/node_modules

@@ -9,6 +9,10 @@ services:
     volumes:
       - pgdata_prod:/var/lib/postgresql/data
 
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+
   api:
     build:
       context: .
@@ -21,6 +25,8 @@ services:
       DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:postgres@db:5432/content_broadcasting?schema=public}
       JWT_SECRET: ${JWT_SECRET}
       PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:3000}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      LIVE_CONTENT_CACHE_TTL_SECONDS: ${LIVE_CONTENT_CACHE_TTL_SECONDS:-15}
       UPLOAD_DIR: ${UPLOAD_DIR:-uploads}
       MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-10}
       DEFAULT_ROTATION_MINUTES: ${DEFAULT_ROTATION_MINUTES:-5}
@@ -28,6 +34,7 @@ services:
       - "3000:3000"
     depends_on:
       - db
+      - redis
     volumes:
       - uploads_prod:/app/uploads
 
