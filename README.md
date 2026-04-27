@@ -162,3 +162,7 @@ If you see an error like “The table `public.users` does not exist”, run the 
 ## Deployment
 
 - Deployment URL (VPS): **`https://cbs.ankitsh.cc/`**
+
+## Demo video
+
+- https://drive.google.com/file/d/1he5ddMNcRiLXxkHBuBVLN5sim-k8e-V9/view?usp=sharing
