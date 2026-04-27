@@ -7,11 +7,17 @@ Auth/RBAC
   - requireRole('teacher'|'principal') enforces RBAC
 
 Upload handling
-- Local disk storage via multer into UPLOAD_DIR (default: uploads/)
-- Static serving via GET /uploads/<filename>
+- Storage provider is configurable:
+  - local: multer writes into UPLOAD_DIR (default: uploads/)
+  - s3: upload goes to disk first (multer), then copied to S3-compatible storage and Content.filePath is updated to the object key
+- Public access:
+  - local: static serving via GET /uploads/<filename>
+  - s3: clients should use S3 public base URL + object key (uploads/<teacherId>/<contentId>/<filename>)
 - Validation:
   - allowlist mime: image/jpeg, image/png, image/gif
   - max size: MAX_UPLOAD_MB
+- Upload API behavior:
+  - Teacher POST /content creates Content (status=pending) and also appends it to the teacher’s rotation list by creating a content_schedule row for (teacherId, subject) with rotationOrder = max+1
 
 Approval workflow
 - Teacher uploads create Content with status=pending
@@ -32,9 +38,19 @@ Scheduling + live rotation
   - cycleMinutes = sum(effective durations)
   - active index chosen by walking elapsedMinutes % cycleMinutes
   - effective duration = schedule.durationMinutes ?? content.rotationDurationMinutes ?? DEFAULT_ROTATION_MINUTES
-- /content/live/:teacherId:
-  - Optional subject filter computes only that subject
+- /content/live/:teacherId (public):
+  - Optional `?subject=<subject>` computes only that subject
+  - Invalid subject filter must not error; return {} for cases like `?subject=` or `?subject=a&subject=b`
   - Without subject, compute per subject and return first active subject in stable alphabetical order
+  - All “no live content” cases return {} (not an error)
+  - Protected with a public rate limiter (PUBLIC_RATE_LIMIT_WINDOW_MS + PUBLIC_RATE_LIMIT_MAX)
+  - Optional Redis caching:
+    - Enabled only when REDIS_URL is set
+    - Cache key: live:<teacherId>:<subject|_>
+    - TTL: LIVE_CONTENT_CACHE_TTL_SECONDS (default 15s)
+    - Cache failures never break the endpoint
+  - View events (optional):
+    - If Prisma has a contentViewEvent model/delegate, the endpoint records an event when a live item is returned (including cache hits); failures are swallowed
 
 DB decisions
 - PostgreSQL + Prisma
@@ -42,6 +58,7 @@ DB decisions
   - users
   - content
   - content_schedule (rotation list keyed by teacher_id + subject)
+  - content_view_event (optional; used for passive analytics on /content/live)
 
 Docker
 - Dev compose: Postgres + API with bind-mount + pnpm dev
